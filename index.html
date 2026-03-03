@@ -165,11 +165,17 @@ body.en .item-cover .cat-pill{right:auto;left:10px}
 .add-lesson-row input:focus{border-color:rgba(255,87,51,0.3)}
 
 /* === MODAL (Add/Edit Item) === */
-.modal-overlay{position:fixed;inset:0;z-index:300;background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);display:flex;align-items:flex-end;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s}
-.modal-overlay.show{opacity:1;pointer-events:all}
-.modal-sheet{background:var(--bg2);border:1px solid var(--border);border-radius:20px 20px 0 0;padding:24px 18px calc(24px + var(--safe-b));width:100%;max-width:500px;max-height:85vh;overflow-y:auto;transform:translateY(100%);transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.modal-overlay{position:fixed;inset:0;z-index:300;background:var(--bg);display:none;flex-direction:column;overflow:hidden}
+.modal-overlay.show{display:flex}
+.modal-topbar{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;background:var(--bg)}
+.modal-topbar h3{font-size:16px;font-weight:600;display:flex;align-items:center;gap:6px}
+.modal-topbar h3 .dot{color:var(--accent)}
+.modal-topbar button{background:rgba(255,255,255,0.06);border:1px solid var(--border);border-radius:50%;width:34px;height:34px;color:var(--text);cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center}
+.modal-scroll{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:20px 18px 20px}
+.modal-footer{padding:14px 18px calc(14px + var(--safe-b));border-top:1px solid var(--border);background:var(--bg2);display:flex;gap:8px;flex-shrink:0}
+.modal-footer .btn{padding:14px 16px;font-size:15px;font-weight:600;border-radius:var(--radius-sm)}
 .modal-overlay.show .modal-sheet{transform:translateY(0)}
-@media(min-width:600px){.modal-overlay{align-items:center}.modal-sheet{border-radius:20px;max-height:80vh;transform:translateY(20px)}.modal-overlay.show .modal-sheet{transform:translateY(0)}}
+@media(min-width:600px){.modal-scroll{max-width:500px;margin:0 auto}}
 .modal-sheet h3{font-size:17px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;gap:8px}
 .modal-sheet h3 .dot{color:var(--accent)}
 .field-group{display:flex;flex-direction:column;gap:14px;margin-bottom:16px}
@@ -177,7 +183,7 @@ body.en .item-cover .cat-pill{right:auto;left:10px}
 .field-input{background:rgba(255,255,255,0.03);border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px 14px;color:var(--text);font-size:13px;transition:border .2s}
 .field-input:focus{border-color:rgba(255,87,51,0.3)}
 .field-textarea{resize:none;min-height:60px;font-family:inherit;line-height:1.6}
-.field-file{position:relative;background:var(--bg3);border:2px dashed var(--border);border-radius:var(--radius-sm);padding:20px;text-align:center;cursor:pointer;transition:.2s;overflow:hidden}
+.field-file{position:relative;background:var(--bg3);border:2px dashed var(--border);border-radius:var(--radius-sm);padding:14px;text-align:center;cursor:pointer;transition:.2s;overflow:hidden}
 .field-file:active{border-color:var(--accent)}
 .field-file input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .field-file .ff-icon{font-size:24px;margin-bottom:6px}
@@ -340,7 +346,8 @@ function doConfirm(){if(confirmCb)confirmCb();closeConfirm();}
 
 // ======================== NAV ========================
 function renderNav(){
-  document.getElementById('navbar').innerHTML=`<div class="navbar">
+  const hideNav = S.modal !== null;
+  document.getElementById('navbar').innerHTML=hideNav?'':`<div class="navbar">
     <button class="nav-item ${S.page==='home'?'active':''}" onclick="goPage('home')"><span class="ni">🏠</span><span class="nl">${t('home')}</span></button>
     <button class="nav-item ${S.page==='browse'?'active':''}" onclick="goPage('browse')"><span class="ni">📋</span><span class="nl">${t('browse')}</span></button>
     <button class="nav-item" onclick="openAddModal()" style="position:relative"><span class="ni" style="width:44px;height:44px;border-radius:50%;background:var(--accent-g);display:flex;align-items:center;justify-content:center;font-size:22px;margin-top:-18px;box-shadow:0 4px 20px rgba(255,87,51,0.3)">+</span></button>
@@ -524,16 +531,20 @@ function renderDetail(){
 
 // ======================== MODAL ========================
 function renderModal(){
-  if(!S.modal)return'<div class="modal-overlay" onclick="closeModal()"><div class="modal-sheet"></div></div>';
+  if(!S.modal)return'';
   const isEdit=S.modal==='edit';
   const item=isEdit?S.items.find(i=>i.id===S.editId):null;
   const ti=item?item.title:'';
   const de=item?item.desc||'':'';
   const ci=item?item.catId:'course';
   const cv=item?item.cover||'':'';
-  return `<div class="modal-overlay show" onclick="closeModal()">
-    <div class="modal-sheet" onclick="event.stopPropagation()">
+  return `<div class="modal-overlay show">
+    <div class="modal-topbar">
+      <button onclick="closeModal()">✕</button>
       <h3><span class="dot">✦</span> ${isEdit?t('editItem'):t('addItem')}</h3>
+      <div style="width:34px"></div>
+    </div>
+    <div class="modal-scroll">
       <div class="field-group">
         <div><div class="field-label">${t('coverImage')}</div>
           <div class="field-file" onclick="document.getElementById('coverFileInput').click()">
@@ -564,12 +575,12 @@ function renderModal(){
             `).join('')}
           </div>
         </div>
-        <div style="display:flex;gap:8px">
-          ${isEdit?`<button class="btn btn-ghost" style="flex:1;color:#ff4444;border-color:rgba(255,68,68,0.3)" onclick="deleteItem('${S.editId}')">${t('delete')}</button>`:''}
-          <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">${t('cancel')}</button>
-          <button class="btn btn-primary" style="flex:2" onclick="saveModal()">${t('save')}</button>
-        </div>
       </div>
+    </div>
+    <div class="modal-footer">
+      ${isEdit?`<button class="btn btn-ghost" style="flex:1;color:#ff4444;border-color:rgba(255,68,68,0.3)" onclick="deleteItem('${S.editId}')">${t('delete')}</button>`:''}
+      <button class="btn btn-ghost" style="flex:1" onclick="closeModal()">${t('cancel')}</button>
+      <button class="btn btn-primary" style="flex:2" onclick="saveModal()">${t('save')}</button>
     </div>
   </div>`;
 }
